@@ -1,0 +1,20 @@
+services:
+  postgres:
+    image: pgvector/pgvector:pg16
+    container_name: savvy-postgres
+    environment:
+      POSTGRES_USER: savvy
+      POSTGRES_PASSWORD: savvy
+      POSTGRES_DB: savvy
+    ports:
+      - "5432:5432"
+    volumes:
+      - savvy-postgres-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U savvy"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+volumes:
+  savvy-postgres-data:
