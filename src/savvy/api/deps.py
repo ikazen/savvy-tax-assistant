@@ -11,6 +11,8 @@ from typing import Annotated
 from fastapi import Depends, Request
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
 
+from savvy.llm.base import LLMProvider
+
 
 def get_session_factory(
     request: Request,
@@ -29,3 +31,10 @@ async def get_db(factory: SessionFactoryDep) -> AsyncIterator[AsyncSession]:
 
 
 SessionDep = Annotated[AsyncSession, Depends(get_db)]
+
+
+def get_llm(request: Request) -> LLMProvider:
+    return request.app.state.llm  # type: ignore[no-any-return]
+
+
+LLMDep = Annotated[LLMProvider, Depends(get_llm)]

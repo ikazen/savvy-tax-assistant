@@ -32,6 +32,12 @@ class ChatSessionOut(ChatSessionBase):
     updated_at: datetime
 
 
+class ChatRequest(BaseModel):
+    """단일 사용자 turn 입력. Phase 4 에이전트 도입 전이라 텍스트 메시지만."""
+
+    content: str
+
+
 class ChatMessageOut(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 
