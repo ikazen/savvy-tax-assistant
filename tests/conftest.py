@@ -44,6 +44,36 @@ requires_db = pytest.mark.skipif(
 )
 
 
+def _ollama_configured() -> bool:
+    """Cloud는 키 존재로, 로컬은 핑으로 판단."""
+    s = get_settings()
+    if s.ollama_api_key:
+        return True
+    try:
+        import httpx
+
+        r = httpx.get(f"{s.ollama_base_url}/api/tags", timeout=2.0)
+        return r.status_code == 200
+    except Exception:
+        return False
+
+
+requires_ollama = pytest.mark.skipif(
+    not _ollama_configured(),
+    reason="Ollama not configured (no API key, and local instance unreachable)",
+)
+
+
+def _gemini_configured() -> bool:
+    return bool(get_settings().gemini_api_key)
+
+
+requires_gemini = pytest.mark.skipif(
+    not _gemini_configured(),
+    reason="Gemini not configured (GEMINI_API_KEY empty)",
+)
+
+
 @pytest_asyncio.fixture(scope="session")
 async def engine() -> AsyncIterator[AsyncEngine]:
     if _DB_AVAILABLE:

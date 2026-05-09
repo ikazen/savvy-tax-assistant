@@ -40,6 +40,10 @@ asyncio_default_fixture_loop_scope = "session"
 asyncio_default_test_loop_scope = "session"
 testpaths = ["tests"]
 pythonpath = ["src"]
+markers = [
+    "live: tests that hit real external APIs (opt-in via `pytest -m live`)",
+]
+addopts = ["-m", "not live"]
 
 [tool.mypy]
 python_version = "3.12"
