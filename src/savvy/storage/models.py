@@ -1,12 +1,13 @@
 from __future__ import annotations
 
 import uuid
-from datetime import datetime
+from datetime import date, datetime
 from enum import StrEnum
 from typing import Any
 
 from pgvector.sqlalchemy import Vector
 from sqlalchemy import (
+    Date,
     DateTime,
     Enum,
     ForeignKey,
@@ -14,6 +15,7 @@ from sqlalchemy import (
     Integer,
     String,
     Text,
+    UniqueConstraint,
     func,
 )
 from sqlalchemy.dialects.postgresql import JSONB, UUID
@@ -304,3 +306,132 @@ class ClientCommunicationChunk(Base):
     __table_args__ = (
         Index("idx_client_comm_chunks_comm_idx", "communication_id", "chunk_idx"),
     )
+
+
+# ---- knowledge base (글로벌 — tenant 무관) ----
+
+class Law(Base):
+    """법령 메타 (예: 법인세법). 시행일자별 본문은 LawVersion에 별도."""
+
+    __tablename__ = "laws"
+
+    id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True), primary_key=True, default=uuid.uuid4
+    )
+    name: Mapped[str] = mapped_column(Text, nullable=False, unique=True)
+    category: Mapped[str | None] = mapped_column(Text, nullable=True)
+    external_id: Mapped[str | None] = mapped_column(Text, nullable=True)
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), server_default=func.now(), nullable=False
+    )
+
+    __table_args__ = (Index("idx_laws_category", "category"),)
+
+
+class LawVersion(Base):
+    """법령의 시행일자별 스냅샷. prev_version_id 체인으로 diff 추적 가능."""
+
+    __tablename__ = "law_versions"
+
+    id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True), primary_key=True, default=uuid.uuid4
+    )
+    law_id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True),
+        ForeignKey("laws.id", ondelete="CASCADE"),
+        nullable=False,
+    )
+    effective_date: Mapped[date] = mapped_column(Date, nullable=False)
+    promulgated_at: Mapped[date | None] = mapped_column(Date, nullable=True)
+    prev_version_id: Mapped[uuid.UUID | None] = mapped_column(
+        UUID(as_uuid=True),
+        ForeignKey("law_versions.id", ondelete="SET NULL"),
+        nullable=True,
+    )
+    text: Mapped[str] = mapped_column(Text, nullable=False)
+    source_url: Mapped[str | None] = mapped_column(Text, nullable=True)
+    pdf_path: Mapped[str | None] = mapped_column(Text, nullable=True)
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), server_default=func.now(), nullable=False
+    )
+
+    __table_args__ = (
+        UniqueConstraint("law_id", "effective_date", name="uq_law_versions_law_date"),
+        Index("idx_law_versions_law_date", "law_id", "effective_date"),
+    )
+
+
+class LawChunk(Base):
+    """법령 본문 청킹 결과. 조문 단위 (article_no/paragraph_no) 또는 토큰 윈도우."""
+
+    __tablename__ = "law_chunks"
+
+    id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True), primary_key=True, default=uuid.uuid4
+    )
+    law_version_id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True),
+        ForeignKey("law_versions.id", ondelete="CASCADE"),
+        nullable=False,
+    )
+    article_no: Mapped[str | None] = mapped_column(Text, nullable=True)
+    paragraph_no: Mapped[str | None] = mapped_column(Text, nullable=True)
+    text: Mapped[str] = mapped_column(Text, nullable=False)
+    chunk_idx: Mapped[int] = mapped_column(Integer, nullable=False)
+    token_count: Mapped[int | None] = mapped_column(Integer, nullable=True)
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), server_default=func.now(), nullable=False
+    )
+
+    __table_args__ = (
+        Index("idx_law_chunks_version_idx", "law_version_id", "chunk_idx"),
+    )
+
+
+class Case(Base):
+    """판례 (대법원/조세심판원 등)."""
+
+    __tablename__ = "cases"
+
+    id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True), primary_key=True, default=uuid.uuid4
+    )
+    case_number: Mapped[str] = mapped_column(Text, nullable=False)
+    court: Mapped[str] = mapped_column(Text, nullable=False)
+    decided_at: Mapped[date] = mapped_column(Date, nullable=False)
+    category: Mapped[str | None] = mapped_column(Text, nullable=True)
+    title: Mapped[str | None] = mapped_column(Text, nullable=True)
+    summary: Mapped[str | None] = mapped_column(Text, nullable=True)
+    text: Mapped[str] = mapped_column(Text, nullable=False)
+    source_url: Mapped[str | None] = mapped_column(Text, nullable=True)
+    pdf_path: Mapped[str | None] = mapped_column(Text, nullable=True)
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), server_default=func.now(), nullable=False
+    )
+
+    __table_args__ = (
+        UniqueConstraint("court", "case_number", name="uq_cases_court_number"),
+        Index("idx_cases_category", "category"),
+        Index("idx_cases_court_decided", "court", "decided_at"),
+    )
+
+
+class CaseChunk(Base):
+    __tablename__ = "case_chunks"
+
+    id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True), primary_key=True, default=uuid.uuid4
+    )
+    case_id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True),
+        ForeignKey("cases.id", ondelete="CASCADE"),
+        nullable=False,
+    )
+    text: Mapped[str] = mapped_column(Text, nullable=False)
+    chunk_idx: Mapped[int] = mapped_column(Integer, nullable=False)
+    token_count: Mapped[int | None] = mapped_column(Integer, nullable=True)
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), server_default=func.now(), nullable=False
+    )
+
+    __table_args__ = (Index("idx_case_chunks_case_idx", "case_id", "chunk_idx"),)
