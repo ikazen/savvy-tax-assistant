@@ -14,6 +14,7 @@ from sqlalchemy.ext.asyncio import (
 )
 
 from savvy.config import get_settings
+from savvy.storage.init_db import init_db
 
 
 def _db_reachable(url: str) -> bool:
@@ -45,6 +46,8 @@ requires_db = pytest.mark.skipif(
 
 @pytest_asyncio.fixture(scope="session")
 async def engine() -> AsyncIterator[AsyncEngine]:
+    if _DB_AVAILABLE:
+        await init_db()
     eng = create_async_engine(_DB_URL, pool_pre_ping=True)
     yield eng
     await eng.dispose()

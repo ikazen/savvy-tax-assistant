@@ -27,6 +27,9 @@ docker compose up -d
 # 환경 변수
 cp .env.example .env
 
+# DB 스키마 초기화 (멱등)
+uv run python -m savvy.storage.init_db
+
 # 테스트
 uv run pytest
 ```
