@@ -6,6 +6,7 @@ from contextlib import asynccontextmanager
 from fastapi import FastAPI
 
 from savvy.api.routers.entities import router as entities_router
+from savvy.api.routers.persons import router as persons_router
 from savvy.config import get_settings
 from savvy.storage.db import make_engine, make_session_factory
 
@@ -34,6 +35,7 @@ def create_app() -> FastAPI:
         return {"status": "ok"}
 
     app.include_router(entities_router, prefix=API_PREFIX)
+    app.include_router(persons_router, prefix=API_PREFIX)
 
     return app
 
