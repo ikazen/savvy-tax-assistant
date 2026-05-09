@@ -33,5 +33,6 @@
 - 글로벌 코딩 스타일: `~/.claude/CLAUDE.md` 따름 (타입힌트, 함수 우선,
   점진 구현, 자동 커밋 등)
 - 상세 결정 사항: `ROADMAP.md` 의 "핵심 결정 사항"
-- 폴더 구조/진입점: `docs/README.md`
-- 컴포넌트 + 데이터 흐름: `docs/architecture.md`
+- 폴더 구조/진입점: `README.md`
+- 컴포넌트 + 데이터 흐름: `architecture.md`
+- 사용자 영향 변경 이력: `changelog.md`
