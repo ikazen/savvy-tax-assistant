@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from typing import Annotated
 from uuid import UUID
 
 from fastapi import APIRouter, HTTPException, Query, status
@@ -42,9 +43,9 @@ async def create_chat_session(
 @router.get("", response_model=list[ChatSessionOut])
 async def list_chat_sessions(
     session: SessionDep,
-    entity_id: UUID | None = Query(default=None),
-    limit: int = Query(default=50, ge=1, le=500),
-    offset: int = Query(default=0, ge=0),
+    entity_id: UUID | None = None,
+    limit: Annotated[int, Query(ge=1, le=500)] = 50,
+    offset: Annotated[int, Query(ge=0)] = 0,
 ) -> list[ChatSession]:
     stmt = select(ChatSession).where(
         ChatSession.tenant_id == get_settings().default_tenant_id
@@ -93,8 +94,8 @@ async def delete_chat_session(session_id: UUID, session: SessionDep) -> None:
 async def list_chat_messages(
     session_id: UUID,
     session: SessionDep,
-    limit: int = Query(default=100, ge=1, le=1000),
-    offset: int = Query(default=0, ge=0),
+    limit: Annotated[int, Query(ge=1, le=1000)] = 100,
+    offset: Annotated[int, Query(ge=0)] = 0,
 ) -> list[ChatMessage]:
     if await session.get(ChatSession, session_id) is None:
         raise HTTPException(status.HTTP_404_NOT_FOUND, "chat session not found")

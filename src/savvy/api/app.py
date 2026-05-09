@@ -6,6 +6,7 @@ from contextlib import asynccontextmanager
 from fastapi import FastAPI
 
 from savvy.api.routers.chat_sessions import router as chat_sessions_router
+from savvy.api.routers.communications import router as communications_router
 from savvy.api.routers.entities import router as entities_router
 from savvy.api.routers.persons import router as persons_router
 from savvy.config import get_settings
@@ -38,6 +39,7 @@ def create_app() -> FastAPI:
     app.include_router(entities_router, prefix=API_PREFIX)
     app.include_router(persons_router, prefix=API_PREFIX)
     app.include_router(chat_sessions_router, prefix=API_PREFIX)
+    app.include_router(communications_router, prefix=API_PREFIX)
 
     return app
 

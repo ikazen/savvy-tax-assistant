@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from typing import Annotated
 from uuid import UUID
 
 from fastapi import APIRouter, HTTPException, Query, status
@@ -28,8 +29,8 @@ async def create_person(payload: PersonCreate, session: SessionDep) -> Person:
 @router.get("", response_model=list[PersonOut])
 async def list_persons(
     session: SessionDep,
-    limit: int = Query(default=50, ge=1, le=500),
-    offset: int = Query(default=0, ge=0),
+    limit: Annotated[int, Query(ge=1, le=500)] = 50,
+    offset: Annotated[int, Query(ge=0)] = 0,
 ) -> list[Person]:
     stmt = (
         select(Person)
