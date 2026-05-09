@@ -5,6 +5,7 @@ from contextlib import asynccontextmanager
 
 from fastapi import FastAPI
 
+from savvy.api.routers.entities import router as entities_router
 from savvy.config import get_settings
 from savvy.storage.db import make_engine, make_session_factory
 
@@ -31,6 +32,8 @@ def create_app() -> FastAPI:
     @app.get(f"{API_PREFIX}/health")
     async def health() -> dict[str, str]:
         return {"status": "ok"}
+
+    app.include_router(entities_router, prefix=API_PREFIX)
 
     return app
 
