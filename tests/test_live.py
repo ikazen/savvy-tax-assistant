@@ -11,14 +11,16 @@ from collections.abc import AsyncIterator
 
 import pytest
 import pytest_asyncio
+from httpx import ASGITransport, AsyncClient
 from sqlalchemy import delete
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
 
+from savvy.api.app import create_app
 from savvy.config import get_settings
 from savvy.embedding.factory import make_embedding
 from savvy.llm.base import Message, Role
 from savvy.llm.factory import make_llm
-from savvy.storage.models import VectorEmbedding
+from savvy.storage.models import ChatMessage, ChatSession, VectorEmbedding
 from savvy.vectorstore import VectorRecord
 from savvy.vectorstore.factory import make_vector_store
 from tests.conftest import requires_db, requires_gemini, requires_ollama
@@ -95,3 +97,44 @@ async def test_live_e2e_embed_upsert_search(
     assert hits[0].id == "corp", f"top hit이 corp가 아님: {[h.id for h in hits]}"
     # 'lunch'가 가장 멀어야 함 (관련 없는 문장)
     assert hits[-1].id == "lunch", f"bottom hit이 lunch가 아님: {[h.id for h in hits]}"
+
+
+@requires_db
+@requires_ollama
+async def test_live_chat_endpoint_e2e(
+    session_factory: async_sessionmaker[AsyncSession],
+) -> None:
+    """실제 LLM(Ollama Cloud)로 chat 엔드포인트 흐름 검증.
+
+    Session 생성 → chat → assistant 메시지 응답 + DB 영속화 확인.
+    """
+    settings = get_settings()
+    app = create_app()
+    app.state.session_factory = session_factory
+    app.state.settings = settings
+    app.state.llm = make_llm(settings)
+
+    try:
+        async with AsyncClient(
+            transport=ASGITransport(app=app), base_url="http://test"
+        ) as c:
+            r = await c.post(
+                "/api/v1/chat-sessions", json={"title": "live test"}
+            )
+            assert r.status_code == 201, r.text
+            sid = r.json()["id"]
+
+            r = await c.post(
+                f"/api/v1/chat-sessions/{sid}/chat",
+                json={"content": "한 단어로만 인사해줘."},
+            )
+            assert r.status_code == 201, r.text
+            body = r.json()
+            assert body["role"] == "assistant"
+            assert body["content"].strip(), "빈 응답"
+            assert body["model_id"] == settings.ollama_chat_model
+    finally:
+        async with session_factory() as s:
+            await s.execute(delete(ChatMessage))
+            await s.execute(delete(ChatSession))
+            await s.commit()
