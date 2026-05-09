@@ -3,7 +3,7 @@
 세무사 본인 업무 보조용 agentic RAG 챗봇. 단일 사용자 시작, 멀티테넌트 확장 대비.
 
 ## 진척 상황
-세부 진척과 다음 phase는 `docs/ROADMAP.md` 참조. 새 작업 시작 시 먼저 확인.
+세부 진척과 다음 phase는 `ROADMAP.md` 참조. 새 작업 시작 시 먼저 확인.
 
 ## 황금 규칙
 - LLM/Embedding/VectorStore는 **항상 factory 통해서**:
@@ -32,4 +32,6 @@
 ## 기타
 - 글로벌 코딩 스타일: `~/.claude/CLAUDE.md` 따름 (타입힌트, 함수 우선,
   점진 구현, 자동 커밋 등)
-- 상세 결정 사항: `docs/ROADMAP.md` 의 "핵심 결정 사항"
+- 상세 결정 사항: `ROADMAP.md` 의 "핵심 결정 사항"
+- 폴더 구조/진입점: `docs/README.md`
+- 컴포넌트 + 데이터 흐름: `docs/architecture.md`
